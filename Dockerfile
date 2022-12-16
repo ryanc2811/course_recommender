@@ -30,7 +30,7 @@ RUN pip3 install wheel
 # linking them together. Likewise, pip leaves the install caches populated which uses
 # a significant amount of space. These optimizations save a fair amount of space in the
 # image, which reduces start up time.
-RUN pip --no-cache-dir install numpy==1.16.2 flask gunicorn
+RUN pip --no-cache-dir install numpy flask gunicorn
 
 # surprise won't install without numpy preinstalled
 RUN pip install scikit-surprise
