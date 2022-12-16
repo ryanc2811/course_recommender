@@ -19,8 +19,8 @@ RUN apt-get -y update && apt-get install -y --no-install-recommends \
          python3-wheel \
     && rm -rf /var/lib/apt/lists/*
 
-RUN ln -s /usr/bin/python3 /usr/bin/python
-RUN ln -s /usr/bin/pip3 /usr/bin/pip
+RUN ln -sv /usr/bin/python3 /usr/bin/python
+RUN ln -sv /usr/bin/pip3 /usr/bin/pip
 
 # surprise won't install without numpy preinstalled
 RUN pip3 install wheel
