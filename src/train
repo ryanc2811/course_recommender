@@ -11,7 +11,7 @@ import pandas as pd
 prefix = '/opt/ml/'
 input_path = prefix + 'input/data'
 output_path = os.path.join(prefix, 'output')
-model_path = os.path.join(prefix, 'model', 'recommender_system.csv')
+model_path = os.path.join(prefix, 'model', 'recommender_system')
 
 # This algorithm has two channels: training (mandatory) and testing (optional).
 # When input method is file mode, the input files are copied to the directory
