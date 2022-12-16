@@ -71,6 +71,49 @@ def get_all_category_watch_time(users, courses):
     category_progress.columns = column_names
     return category_progress
 
+def dump(file_name, predictions, trainset=None, algo=None):
+    """Dump a list of :obj:`predictions
+    <surprise.prediction_algorithms.predictions.Prediction>` for future
+    analysis, using Pickle.
+
+    If needed, the :class:`trainset <surprise.dataset.Trainset>` object and the
+    algorithm can also be dumped. What is dumped is a dictionnary with keys
+    ``'predictions``, ``'trainset'``, and ``'algo'``.
+
+    The dumped algorithm won't be a proper :class:`algorithm
+    <surprise.prediction_algorithms.algo_base.AlgoBase>` object but simply a
+    dictionnary with the algorithm attributes as keys-values (technically, the
+    ``algo.__dict__`` attribute).
+
+    See :ref:`User Guide <dumping>` for usage.
+
+    Args:
+        file_name(str): The name (with full path) specifying where to dump the
+            predictions.
+
+        predictions(list of :obj:`Prediction\
+            <surprise.prediction_algorithms.predictions.Prediction>`): The
+            predictions to dump.
+        trainset(:class:`Trainset <surprise.dataset.Trainset>`, optional): The
+            trainset to dump.
+        algo(:class:`Algorithm\
+            <surprise.prediction_algorithms.algo_base.AlgoBase>`, optional):
+            algorithm to dump.
+    """
+
+    dump_obj = dict()
+
+    dump_obj['predictions'] = predictions
+
+    if trainset is not None:
+        dump_obj['trainset'] = trainset
+
+    if algo is not None:
+        dump_obj['algo'] = algo.__dict__  # add algo attributes
+        dump_obj['algo']['name'] = algo.__class__.__name__
+
+    pickle.dump(dump_obj, open(file_name, 'wb'))
+    print('The dump has been saved as file', file_name)
 
 def train():
     print('Training job started')
@@ -98,26 +141,16 @@ def train():
         # Create an instance of KMeans to find 20 clusters
         km = KMeans(n_clusters=20, random_state=0)
 
+        algo=km.fit(category_watch_time_list)
         # Use fit_predict to cluster the dataset
         # Returns a cluster prediction for each student / ie cluster labels
-        predictions = km.fit_predict(category_watch_time_list)
+        predictions = algo.predict(category_watch_time_list)
 
         
-       
-        #convert numpy array to dataframe and give column name of cluster
-        cluster_df = pd.DataFrame(data=predictions)
-        cluster_df.columns = ['assigned_cluster']
-        
-        
-        # merge data to see the assigned cluster for user ID and drop unnecessary columns
-        user_cluster_df = pd.DataFrame(columns = ['UserID', 'assigned_cluster'])
-        user_cluster_df = pd.concat([cluster_df, category_watch_time_df], axis=1)
-        user_cluster_df = user_cluster_df[user_cluster_df.columns[user_cluster_df.columns.isin(['UserID', 'assigned_cluster'])]]
-
         # Save model
         print(f"Saving model in {model_path} ...")
         
-        pickle.dump(user_cluster_df, open(model_path, 'wb'))
+        dump.dump(model_path, algo=algo, predictions=predictions,trainset=category_watch_time_df)
         print("Training complete.")
 
     except Exception as e:

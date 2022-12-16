@@ -49,7 +49,15 @@ class ScoringService(object):
         """For the inputs, do the prediction and return it."""
         model = cls.get_model()
         print('Predicting rating ...')
-        df=pd.DataFrame(model)
+        #convert numpy array to dataframe and give column name of cluster
+        cluster_df = pd.DataFrame(data=model.predictions)
+        cluster_df.columns = ['assigned_cluster']
+        
+        category_watch_time_df=pd.DataFrame(data=model.trainset)
+        # merge data to see the assigned cluster for user ID and drop unnecessary columns
+        user_cluster_df = pd.DataFrame(columns = ['UserID', 'assigned_cluster'])
+        user_cluster_df = pd.concat([cluster_df, category_watch_time_df], axis=1)
+        user_cluster_df = user_cluster_df[user_cluster_df.columns[user_cluster_df.columns.isin(['UserID', 'assigned_cluster'])]]
 
         progress_df,courses_df=cls.load_data()
         cluster = df.loc[df['UserID'] == user_id].assigned_cluster.values[0]
