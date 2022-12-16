@@ -6,7 +6,7 @@ import pandas as pd
 
 # Path where SageMaker mounts data in our container
 prefix = '/opt/ml/'
-model_path = os.path.join(prefix, 'model', 'recommender_system.csv')
+model_path = os.path.join(prefix, 'model', 'recommender_system')
 input_path = prefix + 'input/data'
 channel_name_train = 'train'
 training_path = os.path.join(input_path, channel_name_train)
