@@ -3,14 +3,15 @@
 import os
 import sys
 import traceback
-from surprise import Dataset, Reader, SVD, dump
-from surprise.model_selection import GridSearchCV
+import pickle
+from sklearn.cluster import KMeans
+import pandas as pd
 
 # Paths where SageMaker mounts data in our container
 prefix = '/opt/ml/'
 input_path = prefix + 'input/data'
 output_path = os.path.join(prefix, 'output')
-model_path = os.path.join(prefix, 'model', 'recommender_system')
+model_path = os.path.join(prefix, 'model', 'recommender_system.csv')
 
 # This algorithm has two channels: training (mandatory) and testing (optional).
 # When input method is file mode, the input files are copied to the directory
@@ -22,40 +23,102 @@ test_path = os.path.join(input_path, channel_name_test)
 test_flag = False
  """
 
-ratings_path = os.path.join(training_path, 'Ratings.csv')
+progress_path = os.path.join(training_path, 'Ratings.csv')
+
+def load_data():
+    progress_path=os.path.join(training_path,'Progress.csv')
+    courses_path=os.path.join(training_path,'CPD_Courses.csv')
+    df_progress = pd.read_csv(progress_path)
+    df_courses = pd.read_csv(courses_path)
+    
+    return df_progress,df_courses
+
+def get_list_of_categories(courses):
+    category_list = []
+    
+    for category in courses.Categories.str.split('|'):
+        for name in category:
+            if name not in category_list: 
+                category_list.append(name.strip())
+            
+    return category_list
+
+def get_column_name_list(category_list):
+    column_name = []
+    
+    for category in category_list:
+        column_name.append('avg_' + category.strip() + '_watch')
+      
+    return column_name
+
+#category watch time across ALL students across ALL categories
+def get_all_category_watch_time(users, courses):
+    category_progress = pd.DataFrame(columns = ['UserID'])
+    category_list = get_list_of_categories(courses)
+    column_names = get_column_name_list(category_list)
+    
+    #add studentId to list of columns
+    column_names.insert(0,'UserID')
+    
+    for category in category_list:        
+        course_categories = courses[courses['Categories'].str.contains(category)]
+        
+        #determine the average watch time for the given category; retain the studentId
+        avg_watch_time_per_user = users[users['CourseID'].isin(course_categories['CourseID'])].loc[:, ['UserID', 'Progress']].groupby(['UserID'])['Progress'].mean().round(2).reset_index()      
+    
+        #merge the progress for the given catetgory with the prior categories
+        category_progress = category_progress.merge(avg_watch_time_per_user, on='UserID', how='outer')
+            
+    category_progress.columns = column_names
+    return category_progress
+
 
 def train():
     print('Training job started')
     try:
-        # Process ratings with Surprise Scikit
-        reader = Reader(line_format='user item rating', sep=',', rating_scale = (1.0,5.0), skip_lines=1)
-        ratings = Dataset.load_from_file(ratings_path, reader=reader)
-        trainset = ratings.build_full_trainset()
+        progress,courses=load_data()
+        
+    
+        #convert progress percentage string to numeric data
+        progress['Progress'] = progress['Progress'].astype('float') / 100.0
 
-        # Find the best hyperparameters for an SVD model via grid search cross-validation
-        param_grid = {
-            'n_factors': [10, 100, 500],
-            'n_epochs': [5, 20, 50], 
-            'lr_all': [0.001, 0.005, 0.02],
-            'reg_all': [0.005, 0.02, 0.1]}
+        # Calculate the average rating all categories per user
+        category_watch_time_df = get_all_category_watch_time(progress, courses)
+        
+        #replace NaN with 0
+        category_watch_time_df = category_watch_time_df.fillna(0)
+        
+        #remove student id from dataframe
+        category_watch_time_list = category_watch_time_df.drop(['UserID'], axis=1)
+        
+        category_watch_time_list.shape
+        
+        # Turn our dataset into a list
+        category_watch_time_list = category_watch_time_list.values
+        
+        # Create an instance of KMeans to find 20 clusters
+        km = KMeans(n_clusters=20, random_state=0)
 
-        gs_model = GridSearchCV(
-            algo_class = SVD,
-            param_grid = param_grid,
-            n_jobs = -1,
-            joblib_verbose = 5)
+        # Use fit_predict to cluster the dataset
+        # Returns a cluster prediction for each student / ie cluster labels
+        predictions = km.fit_predict(category_watch_time_list)
 
-        gs_model.fit(ratings)
-
-        # Train the SVD model with the parameters that minimise the root mean squared error
-        print(f"Best SVD parameters: {gs_model.best_params}")
-        print(f"Test RMSE = {gs_model.cv_results['mean_test_rmse'][0].round(3)}")
-        best_SVD = gs_model.best_estimator['rmse']
-        best_SVD.fit(trainset)
+        
+       
+        #convert numpy array to dataframe and give column name of cluster
+        cluster_df = pd.DataFrame(data=predictions)
+        cluster_df.columns = ['assigned_cluster']
+        
+        
+        # merge data to see the assigned cluster for user ID and drop unnecessary columns
+        user_cluster_df = pd.DataFrame(columns = ['UserID', 'assigned_cluster'])
+        user_cluster_df = pd.concat([cluster_df, category_watch_time_df], axis=1)
+        user_cluster_df = user_cluster_df[user_cluster_df.columns[user_cluster_df.columns.isin(['UserID', 'assigned_cluster'])]]
 
         # Save model
         print(f"Saving model in {model_path} ...")
-        dump.dump(model_path, algo=best_SVD, predictions=None)
+        
+        pickle.dump(user_cluster_df, open(model_path, 'wb'))
         print("Training complete.")
 
     except Exception as e:

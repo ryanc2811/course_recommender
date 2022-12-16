@@ -32,9 +32,6 @@ RUN pip3 install wheel
 # image, which reduces start up time.
 RUN pip --no-cache-dir install numpy flask gunicorn
 
-# surprise won't install without numpy preinstalled
-RUN pip install scikit-surprise
-
 # Set some environment variables. PYTHONUNBUFFERED keeps Python from buffering our standard
 # output stream, which means that logs can be delivered to the user quickly. PYTHONDONTWRITEBYTECODE
 # keeps Python from writing the .pyc files which are unnecessary in this case. We also update

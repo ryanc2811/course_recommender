@@ -1,12 +1,15 @@
 import os
 from flask import Flask, Response, request
 from collections import defaultdict
-from surprise import dump
+import pickle
+import pandas as pd
 
 # Path where SageMaker mounts data in our container
 prefix = '/opt/ml/'
-model_path = os.path.join(prefix, 'model', 'recommender_system')
-
+model_path = os.path.join(prefix, 'model', 'recommender_system.csv')
+input_path = prefix + 'input/data'
+channel_name_train = 'train'
+training_path = os.path.join(input_path, channel_name_train)
 
 class ScoringService(object):
     model = None
@@ -16,18 +19,57 @@ class ScoringService(object):
         """Get the model for this instance if not already loaded."""
         if cls.model == None:
             print('Loading model ...')
-            _, cls.model = dump.load(model_path)
+            _, cls.model = pickle.load(open(model_path, 'rb'))
         return cls.model
 
+
     @classmethod
-    def predict(cls, user_id, course_id):
+    def load_data():
+        progress_path=os.path.join(training_path,'Progress.csv')
+        courses_path=os.path.join(training_path,'CPD_Courses.csv')
+        
+        df_progress = pd.read_csv(progress_path)
+        df_courses = pd.read_csv(courses_path)
+        
+        return df_progress,df_courses
+
+    @classmethod
+    def get_list_of_categories(courses):
+        category_list = []
+        
+        for category in courses.Categories.str.split('|'):
+            for name in category:
+                if name not in category_list: 
+                    category_list.append(name.strip())
+                
+        return category_list
+
+    @classmethod
+    def predict(cls, user_id):
         """For the inputs, do the prediction and return it."""
         model = cls.get_model()
         print('Predicting rating ...')
-        prediction = model.predict(uid=user_id, iid=course_id)
-        rating = str(round(prediction.est, 1))
-        print(f'Predicted rating from user {user_id} for movie {course_id}: {rating}')
-        return rating
+        df=pd.DataFrame(model)
+
+        progress_df,courses_df=cls.load_data()
+        cluster = df.loc[df['UserID'] == user_id].assigned_cluster.values[0]
+        df= df.loc[df['assigned_cluster'] == cluster]
+
+        cluster_users_df = progress_df[progress_df['UserID'].isin(df['UserID'])]
+        #convert progress percentage string to numeric data
+        cluster_users_df['Progress'] = cluster_users_df['Progress'].astype('float') / 100.0
+        #limit to only courses that are above a 90% watch rate
+        cluster_users_df = cluster_users_df.loc[cluster_users_df['Progress'] > .90]
+        #Get the course categories for courses watched (course Id) by students in cluster 
+        cluster_courses_watched_df = courses_df[courses_df['CourseID'].isin(cluster_users_df['CourseID'])]
+        #Get rid of NaN
+        cluster_courses_watched_df.dropna(subset=['Categories'], inplace=True)
+
+        category_list = cls.get_list_of_categories(cluster_courses_watched_df)
+        print("The amount of categories for Cluster "+str(cluster)+": ", len(category_list))
+        print("The categories in Cluster "+str(cluster), category_list)
+      
+        return category_list
 
 
 # The flask app for serving predictions
@@ -47,6 +89,5 @@ def recommend():
     """Determine the prediction for the given user and movie."""
     content = request.json
     user_id = content['UserID']
-    course_id = content['CourseID']
-    response = ScoringService.predict(user_id, course_id)
+    response = ScoringService.predict(user_id)
     return Response(response=response, status=200, mimetype="application/json")
