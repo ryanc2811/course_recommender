@@ -48,7 +48,7 @@ class ScoringService(object):
     def predict(cls, user_id):
         """For the inputs, do the prediction and return it."""
         model = cls.get_model()
-        print('Predicting rating ...')
+        """ print('Predicting rating ...')
         #convert numpy array to dataframe and give column name of cluster
         cluster_df = pd.DataFrame(data=model.predictions)
         cluster_df.columns = ['assigned_cluster']
@@ -75,9 +75,9 @@ class ScoringService(object):
 
         category_list = cls.get_list_of_categories(cluster_courses_watched_df)
         print("The amount of categories for Cluster "+str(cluster)+": ", len(category_list))
-        print("The categories in Cluster "+str(cluster), category_list)
+        print("The categories in Cluster "+str(cluster), category_list) """
       
-        return category_list
+        return model
 
 
 # The flask app for serving predictions

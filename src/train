@@ -144,13 +144,13 @@ def train():
         algo=km.fit(category_watch_time_list)
         # Use fit_predict to cluster the dataset
         # Returns a cluster prediction for each student / ie cluster labels
-        predictions = algo.predict(category_watch_time_list)
+        #predictions = algo.predict(category_watch_time_list)
 
         
         # Save model
         print(f"Saving model in {model_path} ...")
         
-        dump.dump(model_path, algo=algo, predictions=predictions,trainset=category_watch_time_df)
+        dump.dump(model_path, algo=algo, predictions=None)
         print("Training complete.")
 
     except Exception as e:
