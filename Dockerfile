@@ -29,7 +29,5 @@ ENV PYTHONUNBUFFERED=TRUE
 ENV PYTHONDONTWRITEBYTECODE=TRUE
 ENV PATH="/opt/program:${PATH}"
 
-# Set up the program in the image
-COPY src /opt/program
-WORKDIR /opt/program
+COPY ./app /app
 COPY ./data /data

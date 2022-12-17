@@ -14,7 +14,6 @@ then
 fi
 
 
-
 docker build  -t ${image} .
 
-docker run -p 5000:80 --name recommender_api ${image} 
+docker run -p 8080:80 --name recommender_api ${image} 
