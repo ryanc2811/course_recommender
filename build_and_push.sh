@@ -13,7 +13,7 @@ then
     exit 1
 fi
 
-
+chmod +x src/serve
 
 docker build  -t ${image} .
 
