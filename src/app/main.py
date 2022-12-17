@@ -122,7 +122,7 @@ def predict(user_id, predictions):
 predictions,category_watch_time_df = generate_user_model()
 
 
-@app.route('/<string:user_id>')
+@app.route('/predict/<string:user_id>')
 def get_user_recommended_categories(user_id):
     # Check that user exists:
     try:
