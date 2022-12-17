@@ -122,7 +122,7 @@ def predict(user_id, predictions):
 predictions,category_watch_time_df = generate_user_model()
 
 
-@app.route('/predict/<string:user_id>')
+@app.route('/predict/<string:user_id>',methods=['POST'])
 def get_user_recommended_categories(user_id):
     # Check that user exists:
     try:
@@ -134,4 +134,4 @@ def get_user_recommended_categories(user_id):
     return jsonify({"predicted_categories": user_predicted_categories})
 
 if __name__=="__main__":
-    app.run(host='0.0.0.0',port=8080)
+    app.run(host='0.0.0.0',port=80)
