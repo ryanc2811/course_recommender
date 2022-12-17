@@ -29,5 +29,5 @@ ENV PYTHONUNBUFFERED=TRUE
 ENV PYTHONDONTWRITEBYTECODE=TRUE
 ENV PATH="/opt/program:${PATH}"
 
-COPY ./app /app
+COPY ./src/app /app
 COPY ./data /data
