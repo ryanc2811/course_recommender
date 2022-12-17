@@ -134,4 +134,4 @@ def get_user_recommended_categories(user_id):
     return jsonify({"predicted_categories": user_predicted_categories})
 
 if __name__=="__main__":
-    app.run(host='0.0.0.0',port=80)
+    app.run(host='0.0.0.0',port=8080)
