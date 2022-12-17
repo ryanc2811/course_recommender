@@ -4,9 +4,8 @@ import os
 import sys
 import traceback
 import pickle
-from scipy.sparse import csr_matrix
+from sklearn.cluster import KMeans
 import pandas as pd
-from sklearn.neighbors import NearestNeighbors
 
 # Paths where SageMaker mounts data in our container
 prefix = '/opt/ml/'
@@ -26,15 +25,12 @@ test_flag = False
 
 
 def load_data():
-    ratings_path=os.path.join(training_path,'Ratings.csv')
+    progress_path=os.path.join(training_path,'Progress.csv')
     courses_path=os.path.join(training_path,'CPD_Courses.csv')
-    df_ratings = pd.read_csv(
-    os.path.join(training_path,'Ratings.csv'),
-    usecols=['UserID', 'CourseID', 'Rating'],
-    dtype={'UserID': 'int32', 'CourseID': 'str', 'Rating': 'float32'})
+    df_progress = pd.read_csv(progress_path)
     df_courses = pd.read_csv(courses_path)
     
-    return df_ratings,df_courses
+    return df_progress,df_courses
 
 def get_list_of_categories(courses):
     category_list = []
@@ -56,7 +52,7 @@ def get_column_name_list(category_list):
 
 #category watch time across ALL students across ALL categories
 def get_all_category_watch_time(users, courses):
-    category_ratings = pd.DataFrame(columns = ['UserID'])
+    category_progress = pd.DataFrame(columns = ['UserID'])
     category_list = get_list_of_categories(courses)
     column_names = get_column_name_list(category_list)
     
@@ -67,13 +63,13 @@ def get_all_category_watch_time(users, courses):
         course_categories = courses[courses['Categories'].str.contains(category)]
         
         #determine the average watch time for the given category; retain the studentId
-        avg_watch_time_per_user = users[users['CourseID'].isin(course_categories['CourseID'])].loc[:, ['UserID', 'ratings']].groupby(['UserID'])['ratings'].mean().round(2).reset_index()      
+        avg_watch_time_per_user = users[users['CourseID'].isin(course_categories['CourseID'])].loc[:, ['UserID', 'Progress']].groupby(['UserID'])['Progress'].mean().round(2).reset_index()      
     
-        #merge the ratings for the given catetgory with the prior categories
-        category_ratings = category_ratings.merge(avg_watch_time_per_user, on='UserID', how='outer')
+        #merge the progress for the given catetgory with the prior categories
+        category_progress = category_progress.merge(avg_watch_time_per_user, on='UserID', how='outer')
             
-    category_ratings.columns = column_names
-    return category_ratings
+    category_progress.columns = column_names
+    return category_progress
 
 def dump(file_name, predictions, trainset=None, algo=None):
     """Dump a list of :obj:`predictions
@@ -122,39 +118,39 @@ def dump(file_name, predictions, trainset=None, algo=None):
 def train():
     print('Training job started')
     try:
-        ratings,courses=load_data()
+        progress,courses=load_data()
         
-        popularity_thres = 30
-        df_course_cnt = pd.DataFrame(ratings.groupby('CourseID').size(), columns=['count'])
-        popular_courses = list(set(df_course_cnt.query('count >= @popularity_thres').index))
-        print('Popular Courses:',len(popular_courses))
-        df_ratings_drop_courses = ratings[ratings.CourseID.isin(popular_courses)]
-        print('shape of original ratings data: ', ratings.shape)
-        print('shape of ratings data after dropping unpopular courses: ', df_ratings_drop_courses.shape)
     
-        df_users_cnt = pd.DataFrame(df_ratings_drop_courses.groupby('UserID').size(), columns=['count'])
-        # filter data to come to an approximation of user likings.
-        ratings_thres = 5
-        active_users = list(set(df_users_cnt.query('count >= @ratings_thres').index))
-        print('Active Users:',len(active_users))
-        df_ratings_drop_users = df_ratings_drop_courses[df_ratings_drop_courses.UserID.isin(active_users)]
-        print('shape of original ratings data: ', ratings.shape)
-        print('shape of ratings data after dropping both unpopular courses and inactive users: ', df_ratings_drop_users.shape)
+        #convert progress percentage string to numeric data
+        progress['Progress'] = progress['Progress'].astype('float') / 100.0
 
-        # pivot and create course-user matrix
-        course_user_mat = df_ratings_drop_users.pivot(index='CourseID', columns='UserID', values='Rating').fillna(0)
+        # Calculate the average rating all categories per user
+        category_watch_time_df = get_all_category_watch_time(progress, courses)
+        
+        #replace NaN with 0
+        category_watch_time_df = category_watch_time_df.fillna(0)
+        
+        #remove student id from dataframe
+        category_watch_time_list = category_watch_time_df.drop(['UserID'], axis=1)
+        
+        category_watch_time_list.shape
+        
+        # Turn our dataset into a list
+        category_watch_time_list = category_watch_time_list.values
+        
+        # Create an instance of KMeans to find 20 clusters
+        km = KMeans(n_clusters=20, random_state=0)
 
-        # transform matrix to scipy sparse matrix
-        course_user_mat_sparse = csr_matrix(course_user_mat.values)
+        algo=km.fit(category_watch_time_list)
+        # Use fit_predict to cluster the dataset
+        # Returns a cluster prediction for each student / ie cluster labels
+        predictions = algo.predict(category_watch_time_list)
 
-        # define model
-        model_knn = NearestNeighbors(metric='cosine', algorithm='brute', n_neighbors=20, n_jobs=-1)
-        # fit
-        model_knn.fit(course_user_mat_sparse)
+        
         # Save model
         print(f"Saving model in {model_path} ...")
         
-        dump.dump(model_path, algo=model_knn, predictions=None)
+        dump.dump(model_path, algo=algo, predictions=predictions,trainset=category_watch_time_df)
         print("Training complete.")
 
     except Exception as e:
