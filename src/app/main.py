@@ -4,8 +4,8 @@ import pandas as pd
 from sklearn.cluster import KMeans
 
 
-progress_path = '../data/Progress.csv'
-courses_path='../data/Courses.csv'
+progress_path = '../src/data/Progress.csv'
+courses_path='../src/data/CPD_Courses.csv'
 # The flask app for serving predictions
 app = Flask(__name__)
 
