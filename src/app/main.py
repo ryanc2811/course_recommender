@@ -141,5 +141,5 @@ def ping():
     status = 200 if health else 404
     return jsonify({status})
 
-
-    
+if __name__=="__main__":
+    app.run(host='0.0.0.0',port=8080)
