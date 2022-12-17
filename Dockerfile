@@ -6,11 +6,20 @@ FROM ubuntu:22.04
 
 
 COPY requirements.txt /tmp/
+RUN apt-get -y update && apt-get install -y --no-install-recommends \
+         python3-pip \
+         python3-setuptools \
+         ca-certificates \
+         gcc \
+         libpq-dev \
+         python3-dev \
+         python3-venv \
+         python3-wheel \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN set -xe \
-    && apt-get update \
-    && apt-get install python3-pip
-RUN pip install --upgrade pip
+RUN ln -s /usr/bin/python3 /usr/bin/python
+RUN ln -s /usr/bin/pip3 /usr/bin/pip
+
 RUN pip install -r /tmp/requirements.txt
 
 RUN ls
