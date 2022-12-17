@@ -99,7 +99,7 @@ def predict(user_id, predictions):
     user_cluster_df = user_cluster_df[user_cluster_df.columns[user_cluster_df.columns.isin(['UserID', 'assigned_cluster'])]]
 
     progress_df,courses_df=load_data()
-    cluster = progress_df.loc[progress_df['UserID'] == user_id]['assigned_cluster'].values[0]
+    cluster = progress_df.loc[progress_df['UserID'] == user_id].values[0][0]
     user_cluster_df= progress_df.loc[progress_df['assigned_cluster'] == cluster]
 
     cluster_users_df = progress_df[progress_df['UserID'].isin(user_cluster_df['UserID'])]
