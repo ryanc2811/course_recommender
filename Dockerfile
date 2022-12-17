@@ -24,7 +24,8 @@ RUN ln -sf /usr/bin/pip3 /usr/bin/pip
 
 # surprise won't install without numpy preinstalled
 RUN pip3 install wheel
-
+RUN pip install sklearn
+RUN pip install scipy
 # Here we get all python packages.
 # There's substantial overlap between scipy and numpy that we eliminate by
 # linking them together. Likewise, pip leaves the install caches populated which uses
