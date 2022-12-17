@@ -17,8 +17,8 @@ RUN apt-get -y update && apt-get install -y --no-install-recommends \
          python3-wheel \
     && rm -rf /var/lib/apt/lists/*
 
-RUN ln -s /usr/bin/python3 /usr/bin/python
-RUN ln -s /usr/bin/pip3 /usr/bin/pip
+RUN ln -sf /usr/bin/python3 /usr/bin/python
+RUN ln -sf /usr/bin/pip3 /usr/bin/pip
 
 RUN pip install -r /tmp/requirements.txt
 
