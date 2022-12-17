@@ -99,3 +99,7 @@ def recommend():
     user_id = content['UserID']
     response = ScoringService.predict(user_id)
     return Response(response=response, status=200, mimetype="application/json")
+
+if __name__ == '__main__':
+    app.debug = True
+    app.run(host='0.0.0.0', port=80)

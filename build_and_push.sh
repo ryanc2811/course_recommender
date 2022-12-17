@@ -14,7 +14,7 @@ then
 fi
 
 chmod +x src/train
-chmod +x src/serve
+
 
 
 docker build  -t ${image} .
