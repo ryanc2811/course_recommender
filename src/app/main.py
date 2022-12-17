@@ -1,4 +1,4 @@
-from flask import Flask, Response, request
+from flask import Flask, jsonify
 from collections import defaultdict
 import pandas as pd
 from sklearn.cluster import KMeans
@@ -121,26 +121,17 @@ def predict(user_id, predictions):
 
 predictions,category_watch_time_df = generate_user_model()
 
-@app.route('/predict', methods=['POST'])
-def get_user_recommended_categories():
-    content = request.json
-    user_id = content['UserID']
 
+@app.route('/<string:user_id>')
+def get_user_recommended_categories(user_id):
     # Check that user exists:
     try:
         users,courses=load_data()
         users.loc[user_id]
     except:
-        return Response(response="User Does not exist", status=200, mimetype="application/json")
-    response= predict(user_id, predictions)
-    return Response(response=response, status=200, mimetype="application/json")
-
-
-@app.route('/ping', methods=['GET'])
-def ping():
-    health = predictions is not None
-    status = 200 if health else 404
-    return Response(response='\n', status=status, mimetype='application/json')
+        return jsonify({"error": "The user does not exist"})
+    user_predicted_categories = predict(user_id, predictions)
+    return jsonify({"predicted_categories": user_predicted_categories})
 
 if __name__=="__main__":
     app.run(host='0.0.0.0',port=80)
