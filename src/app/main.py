@@ -122,7 +122,7 @@ def predict(user_id, predictions):
 predictions,category_watch_time_df = generate_user_model()
 
 
-@app.route('/predict',methods=["GET","POST"])
+@app.route('/predict',methods=["POST"])
 def prefict():
     if request.method=="POST":
         content = request.json
