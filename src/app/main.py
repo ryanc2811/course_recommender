@@ -7,7 +7,7 @@ from sklearn.cluster import KMeans
 progress_path = '../data/Progress.csv'
 courses_path='../data/Courses.csv'
 # The flask app for serving predictions
-app = Flask("recommender_api")
+app = Flask(__name__)
 
 
 def load_data():
@@ -133,7 +133,7 @@ def get_user_recommended_categories(user_id):
     return jsonify({"predicted_categories": user_predicted_categories})
 
 
-@app.route('/')
+@app.route('/ping')
 def ping():
     """Determine if the container is working and healthy. In this sample container, we declare
     it healthy if we can load the model successfully."""
@@ -141,8 +141,5 @@ def ping():
     status = 200 if health else 404
     return jsonify({status})
 
-if __name__ == '__main__':
-    app.debug = True
-    app.run(host='0.0.0.0')
 
     
