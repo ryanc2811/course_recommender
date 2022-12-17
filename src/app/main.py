@@ -125,8 +125,8 @@ predictions,category_watch_time_df = generate_user_model()
 @app.route('/predict',methods=["GET","POST"])
 def prefict():
     if request.method=="POST":
-        print(request)
-        user_id=request.user_id
+        content = request.json
+        user_id = content['UserID']
         # Check that user exists:
         try:
             users,courses=load_data()
