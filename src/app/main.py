@@ -99,8 +99,8 @@ def predict(user_id, predictions):
     user_cluster_df = user_cluster_df[user_cluster_df.columns[user_cluster_df.columns.isin(['UserID', 'assigned_cluster'])]]
 
     progress_df,courses_df=load_data()
-    cluster = df.loc[df['UserID'] == user_id].assigned_cluster.values[0]
-    df= df.loc[df['assigned_cluster'] == cluster]
+    cluster = progress_df.loc[progress_df['UserID'] == user_id].assigned_cluster.values[0]
+    progress_df= progress_df.loc[df['assigned_cluster'] == cluster]
 
     cluster_users_df = progress_df[progress_df['UserID'].isin(df['UserID'])]
     #convert progress percentage string to numeric data
