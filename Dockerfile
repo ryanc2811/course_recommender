@@ -6,9 +6,11 @@ FROM ubuntu:22.04
 
 
 COPY requirements.txt /tmp/
-RUN ln -s /usr/bin/python3 /usr/bin/python
-RUN ln -s /usr/bin/pip3 /usr/bin/pip
 
+RUN set -xe \
+    && apt-get update \
+    && apt-get install python3-pip
+RUN pip install --upgrade pip
 RUN pip install -r /tmp/requirements.txt
 
 RUN ls
