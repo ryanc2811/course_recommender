@@ -126,6 +126,7 @@ predictions,category_watch_time_df = generate_user_model()
 def prefict():
     if request.method=="POST":
         content = request.json
+        print(content)
         user_id = content['UserID']
         # Check that user exists:
         try:
