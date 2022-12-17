@@ -139,7 +139,7 @@ def ping():
     it healthy if we can load the model successfully."""
     health = generate_user_model is not None
     status = 200 if health else 404
-    return jsonify({status})
+    return jsonify({str(status)})
 
 if __name__=="__main__":
-    app.run(host='0.0.0.0',port=80)
+    app.run(host='0.0.0.0',port=8080)
